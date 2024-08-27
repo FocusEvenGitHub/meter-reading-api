@@ -36,12 +36,32 @@ export const uploadImage = async (req: Request, res: Response) => {
       throw new Error('Invalid reading value');
     }
 
-    // Salva a leitura na base de dados
+    // Obtenha o mês e o ano atuais
+    const now = new Date();
+    const month = now.getMonth() + 1; // Janeiro é 0
+    const year = now.getFullYear();
+
+    // Verifica se já existe uma leitura para o tipo e o mês atual
     const readingRepository = AppDataSource.getRepository(Reading);
+    const existingReading = await readingRepository.findOne({
+      where: {
+        type: 'water', // ou 'gas', dependendo do contexto
+        month,
+        year,
+      },
+    });
+
+    if (existingReading) {
+      return res.status(409).send('A reading for this month already exists');
+    }
+
+    // Salva a leitura na base de dados
     const reading = new Reading();
-    reading.type = 'WATER';  // or 'GAS', dependendo do contexto
+    reading.type = 'water';  // ou 'gas', dependendo do contexto
     reading.reading = readingNumber; // Atribui o número convertido
     reading.imageUrl = `data:${mimeType};base64,${base64Image}`; // Armazena a imagem em Base64
+    reading.month = month;
+    reading.year = year;
 
     await readingRepository.save(reading);
 
