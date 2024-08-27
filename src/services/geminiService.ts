@@ -52,7 +52,6 @@ export const runGeminiModel = async (file: any): Promise<string> => {
       },
     ]);
 
-    console.log(result.response.text());
     return result.response.text();
   } catch (error) {
     console.error('Error running Gemini model:', error.message);

@@ -1,22 +1,34 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity()
 export class Reading {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column()
-  type: string;  // 'water' ou 'gas'
+  @Column({ type: 'varchar', length: 50 })
+  type: 'WATER' | 'GAS';
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column({ type: 'float' })
   reading: number;
 
-  @Column()
-  imageUrl: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  imageUrl?: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 50 })
+  customerCode: string;
+
+  @Column({ type: 'datetime' })
+  measureDateTime: Date;
+
+  @Column({ type: 'int' })
   month: number;
 
-  @Column()
+  @Column({ type: 'int' })
   year: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

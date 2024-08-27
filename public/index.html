@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+</head>
+<body>
+    <h1>Upload Image</h1>
+    <form action="/api/upload" method="post" enctype="multipart/form-data">
+        <label for="image">Image</label>
+        <input type="file" id="image" name="image" accept="image/*" required />
+        <br />
+        <label for="customer_code">Customer Code</label>
+        <input type="text" id="customer_code" name="customer_code" required />
+        <br />
+        <label for="measure_datetime">Measurement DateTime</label>
+        <input type="datetime-local" id="measure_datetime" name="measure_datetime" required />
+        <br />
+        <label for="measure_type">Measurement Type</label>
+        <select id="measure_type" name="measure_type" required>
+            <option value="WATER">Water</option>
+            <option value="GAS">Gas</option>
+        </select>
+        <br />
+        <button type="submit">Upload</button>
+    </form>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = {
+                image: document.getElementById('image').value,
+                customer_code: document.getElementById('customer_code').value,
+                measure_datetime: document.getElementById('measure_datetime').value,
+                measure_type: document.getElementById('measure_type').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Upload successful: ' + JSON.stringify(result));
+                } else {
+                    alert('Upload failed: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,17 +1,20 @@
-import 'reflect-metadata';
 import express from 'express';
+import path from 'path';
 import dotenv from 'dotenv';
-import { json } from 'body-parser';
 import { DataSource } from 'typeorm';
 import routes from './routes';
 
 // Carregar variáveis de ambiente do arquivo .env
 dotenv.config();
-require('dotenv').config();
 
 const app = express();
-app.use(json());
-app.use('/', routes);
+app.use(express.json());
+
+// Servir arquivos estáticos do diretório 'public'
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Configuração das rotas
+app.use('/api', routes);
 
 // Configuração do DataSource
 export const AppDataSource = new DataSource({
@@ -24,7 +27,6 @@ export const AppDataSource = new DataSource({
   synchronize: true,
   logging: false,
   entities: [
-    // Adicione o caminho para suas entidades aqui
     'src/models/**/*.ts'
   ],
   migrations: [
@@ -44,24 +46,3 @@ AppDataSource.initialize().then(() => {
 }).catch(err => {
   console.error('MySQL connection error:', err);
 });
-
-// Connect Google Gemini AI 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-
-
-// DEBUG MODE
-const debug = true
-
-if (debug){
-    const apiKey = process.env.API_KEY;
-
-    if (!apiKey) {
-    console.error('A variável de ambiente API_KEY não está definida.');
-    } else {
-    console.log(`A chave da API é: ${apiKey}`);
-    }   
-}
