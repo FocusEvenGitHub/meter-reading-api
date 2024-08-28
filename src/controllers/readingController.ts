@@ -30,7 +30,8 @@ const uploadImage = async (req: Request, res: Response) => {
 
     const { customer_code, measure_datetime, measure_type } = req.body;
 
-    if (!customer_code || !measure_datetime || !measure_type) {
+
+    if (!customer_code || !measure_datetime || !measure_type || (measure_type !== 'WATER' && measure_type !== 'GAS')) {
         return res.status(400).json({
             error_code: "INVALID_DATA",
             error_description: "Missing required fields."
@@ -49,6 +50,7 @@ const uploadImage = async (req: Request, res: Response) => {
             originalname: req.file.originalname,
             mimetype: req.file.mimetype
         });
+        const readingNumber = parseFloat(result);
 
         // Verificar se já existe uma leitura no banco de dados para o mês e tipo de leitura
         const measureDate = new Date(measure_datetime);
@@ -76,10 +78,10 @@ const uploadImage = async (req: Request, res: Response) => {
         newReading.customerCode = customer_code;
         newReading.measureDateTime = measureDate;
         newReading.type = measure_type;
-        newReading.imageUrl = `uploads/${req.file.filename}`; // Armazenar o caminho da imagem
+        newReading.imageUrl = `uploads/${req.file.filename}`; 
         newReading.month = month;
         newReading.year = year;
-        newReading.reading = 0; // Define um valor padrão, você pode ajustar conforme necessário
+        newReading.reading = readingNumber; 
         await AppDataSource.getRepository(Reading).save(newReading);
 
         // Remover o arquivo temporário

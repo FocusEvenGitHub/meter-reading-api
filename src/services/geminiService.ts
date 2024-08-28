@@ -7,6 +7,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 
 export const runGeminiModel = async (file: any): Promise<string> => {
+  let tempFilePath: string | undefined;
+
   try {
     // Verifica se o arquivo é uma imagem
     if (!file.mimetype.startsWith('image/')) {
@@ -15,26 +17,16 @@ export const runGeminiModel = async (file: any): Promise<string> => {
 
     const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 
-    const fileData = fs.readFileSync(file.path);
-    const base64String = fileData.toString('base64');
-
-    // Valida a string Base64 (opcional)
-    if (!base64String.match(/^([A-Za-z0-9+/=]+)$/)) {
-      throw new Error('Invalid Base64 encoding');
-    }
-
     // Cria um arquivo temporário
-    const tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}.jpg`);
-    fs.writeFileSync(tempFilePath, Buffer.from(base64String, 'base64'));
+    tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}.jpg`);
+    const fileData = fs.readFileSync(file.path);
+    fs.writeFileSync(tempFilePath, fileData);
 
     // Faz o upload do arquivo
     const uploadResult = await fileManager.uploadFile(tempFilePath, {
       mimeType: file.mimetype,
       displayName: file.originalname,
     });
-
-    // Limpa o arquivo temporário
-    fs.unlinkSync(tempFilePath);
 
     console.log(`Uploaded file ${uploadResult.file.displayName} as: ${uploadResult.file.uri}`);
 
@@ -43,7 +35,7 @@ export const runGeminiModel = async (file: any): Promise<string> => {
 
     // Gera o conteúdo usando o arquivo carregado
     const result = await model.generateContent([
-      "Write only numbers of this image",
+      "Write only numbers of this image, if you dont see numbers then let it null",
       {
         fileData: {
           fileUri: uploadResult.file.uri,
@@ -51,10 +43,19 @@ export const runGeminiModel = async (file: any): Promise<string> => {
         },
       },
     ]);
-
+    
     return result.response.text();
   } catch (error) {
     console.error('Error running Gemini model:', error.message);
     throw new Error('Failed to process image with Gemini model');
+  } finally {
+    // Limpa o arquivo temporário, se o caminho for definido
+    if (tempFilePath) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (unlinkError) {
+        console.error('Error deleting temporary file:', unlinkError.message);
+      }
+    }
   }
 };
