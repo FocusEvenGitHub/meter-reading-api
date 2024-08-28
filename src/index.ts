@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Configuração das rotas
-app.use('/api', routes);
+app.use('/', routes);
 
 // Configuração do DataSource
 export const AppDataSource = new DataSource({

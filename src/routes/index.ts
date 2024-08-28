@@ -9,5 +9,7 @@ const router = Router();
 
 // Rota para o upload de imagem
 router.post('/upload', upload.single('image'), readingController.uploadImage);
+router.patch('/confirm', readingController.confirmReading);
+router.get('/:customerCode/list', readingController.listReadings);
 
 export default router;

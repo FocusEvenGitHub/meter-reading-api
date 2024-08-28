@@ -26,6 +26,9 @@ export class Reading {
   @Column({ type: 'int' })
   year: number;
 
+  @Column({ type: 'boolean', nullable: true })
+  confirmedValue: boolean | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
