@@ -1,0 +1,32 @@
+
+services:
+  app:
+    build: .
+    command: npm start
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=api
+      - DB_PASS=123
+      - DB_NAME=db
+    depends_on:
+      - db
+
+  db:
+    image: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'api'
+      MYSQL_PASSWORD: '123'
+      MYSQL_ROOT_PASSWORD: '123'
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:

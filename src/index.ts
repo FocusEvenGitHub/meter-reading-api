@@ -19,11 +19,11 @@ app.use('/', routes);
 // Configuração do DataSource
 export const AppDataSource = new DataSource({
   type: 'mysql',
-  host: 'localhost',
-  port: 3306,
-  username: 'root',
-  password: '',
-  database: 'meter_reading',
+  host: '127.0.0.1',
+  port: 3307,
+  username: 'api',
+  password: '123',
+  database: 'db',
   synchronize: true,
   logging: false,
   entities: [

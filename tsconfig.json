@@ -5,7 +5,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
-    "esModuleInterop": true,  // Adicione ou modifique esta linha
+    "esModuleInterop": true,
     "outDir": "./dist",
     "baseUrl": "./src",
     "paths": {
