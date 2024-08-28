@@ -6,10 +6,9 @@ import { runGeminiModel } from '../services/geminiService';
 import { Reading } from '../models/Reading';
 import { AppDataSource } from '../index';
 
-// Configuração do multer para o upload de arquivos
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../../uploads')); // Pasta de uploads
+        cb(null, path.join(__dirname, '../../uploads'));
     },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname);
@@ -20,7 +19,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 export const uploadImage = async (req: Request, res: Response) => {
-    // Verificar se o arquivo está presente
     if (!req.file) {
         return res.status(400).json({
             error_code: "INVALID_DATA",
@@ -39,12 +37,10 @@ export const uploadImage = async (req: Request, res: Response) => {
     }
 
     try {
-        // Ler o arquivo e converter para base64
         const filePath = path.join(__dirname, '../../uploads', req.file.filename);
         const fileData = fs.readFileSync(filePath);
         const base64String = fileData.toString('base64');
 
-        // Processar a imagem com o modelo Gemini
         const result = await runGeminiModel({
             path: filePath,
             originalname: req.file.originalname,
@@ -52,9 +48,8 @@ export const uploadImage = async (req: Request, res: Response) => {
         });
         const readingNumber = parseFloat(result);
 
-        // Verificar se já existe uma leitura no banco de dados para o mês e tipo de leitura
         const measureDate = new Date(measure_datetime);
-        const month = measureDate.getMonth() + 1; // Meses são baseados em 0
+        const month = measureDate.getMonth() + 1;
         const year = measureDate.getFullYear();
 
         const existingReading = await AppDataSource.getRepository(Reading).findOne({
@@ -73,7 +68,6 @@ export const uploadImage = async (req: Request, res: Response) => {
             });
         }
 
-        // Criar nova leitura
         const newReading = new Reading();
         newReading.customerCode = customer_code;
         newReading.measureDateTime = measureDate;
@@ -84,10 +78,8 @@ export const uploadImage = async (req: Request, res: Response) => {
         newReading.reading = readingNumber;
         await AppDataSource.getRepository(Reading).save(newReading);
 
-        // Remover o arquivo temporário
         fs.unlinkSync(filePath);
 
-        // Responder com o formato solicitado
         res.status(200).json({
             image_url: newReading.imageUrl,
             measure_value: newReading.reading,
@@ -105,7 +97,6 @@ export const confirmReading = async (req: Request, res: Response): Promise<Respo
     const { measure_uuid, confirmed_value } = req.body;
 
 
-    // Validação dos parâmetros enviados
     if (!measure_uuid || typeof measure_uuid !== 'string' || typeof confirmed_value !== 'number') {
         return res.status(400).json({
             error_code: 'INVALID_DATA',
@@ -116,7 +107,6 @@ export const confirmReading = async (req: Request, res: Response): Promise<Respo
     try {
         const readingRepository = AppDataSource.getRepository(Reading);
 
-        // Verificar se o código de leitura informado existe
         const reading = await readingRepository.findOneBy({ id: measure_uuid });
         if (!reading) {
             return res.status(404).json({
@@ -125,7 +115,6 @@ export const confirmReading = async (req: Request, res: Response): Promise<Respo
             });
         }
 
-        // Verificar se o código de leitura já foi confirmado
         if (reading.confirmedValue !== null) {
             return res.status(409).json({
                 error_code: 'CONFIRMATION_DUPLICATE',
@@ -133,7 +122,6 @@ export const confirmReading = async (req: Request, res: Response): Promise<Respo
             });
         }
 
-        // Atualizar o valor confirmado
         reading.reading = confirmed_value;
         reading.confirmedValue = true;
 

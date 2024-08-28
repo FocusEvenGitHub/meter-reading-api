@@ -10,19 +10,16 @@ export const runGeminiModel = async (file: any): Promise<string> => {
   let tempFilePath: string | undefined;
 
   try {
-    // Verifica se o arquivo é uma imagem
     if (!file.mimetype.startsWith('image/')) {
       throw new Error('Uploaded file is not an image');
     }
 
     const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 
-    // Cria um arquivo temporário
     tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}.jpg`);
     const fileData = fs.readFileSync(file.path);
     fs.writeFileSync(tempFilePath, fileData);
 
-    // Faz o upload do arquivo
     const uploadResult = await fileManager.uploadFile(tempFilePath, {
       mimeType: file.mimetype,
       displayName: file.originalname,
@@ -33,7 +30,6 @@ export const runGeminiModel = async (file: any): Promise<string> => {
     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Gera o conteúdo usando o arquivo carregado
     const result = await model.generateContent([
       "Write only numbers of this image, if you dont see numbers then let it null",
       {
@@ -49,7 +45,6 @@ export const runGeminiModel = async (file: any): Promise<string> => {
     console.error('Error running Gemini model:', error.message);
     throw new Error('Failed to process image with Gemini model');
   } finally {
-    // Limpa o arquivo temporário, se o caminho for definido
     if (tempFilePath) {
       try {
         fs.unlinkSync(tempFilePath);
