@@ -14,7 +14,7 @@ export const runGeminiModel = async (file: any): Promise<string> => {
       throw new Error('Uploaded file is not an image');
     }
 
-    const fileManager = new GoogleAIFileManager(process.env.API_KEY);
+    const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
     tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}.jpg`);
     const fileData = fs.readFileSync(file.path);
@@ -25,9 +25,7 @@ export const runGeminiModel = async (file: any): Promise<string> => {
       displayName: file.originalname,
     });
 
-    console.log(`Uploaded file ${uploadResult.file.displayName} as: ${uploadResult.file.uri}`);
-
-    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const result = await model.generateContent([
