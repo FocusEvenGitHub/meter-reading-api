@@ -12,6 +12,7 @@ app.use(express.json());
 
 // Servir arquivos estáticos do diretório 'public'
 app.use(express.static(path.join(__dirname, '../public')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Configuração das rotas
 app.use('/', routes);

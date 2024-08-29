@@ -1,18 +1,33 @@
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises'; 
 import { runGeminiModel } from '../services/geminiService';
 import { Reading } from '../models/Reading';
 import { AppDataSource } from '../index';
 
+// Função para mapear tipos MIME para extensões de arquivo
+const getExtensionFromMimeType = (mimetype: string): string => {
+    const mimeTypes: { [key: string]: string } = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/gif': '.gif',
+        'image/bmp': '.bmp',
+        'image/tiff': '.tiff',
+        // Adicione outros tipos MIME conforme necessário
+    };
+    return mimeTypes[mimetype] || '';
+};
+
+// Configuração do multer com armazenamento personalizado
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, path.join(__dirname, '../../uploads'));
     },
     filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, `${Date.now()}${ext}`);
+        const ext = getExtensionFromMimeType(file.mimetype);
+        const filename = `${Date.now()}${ext || ''}`; // Aplicar a extensão se possível
+        cb(null, filename);
     }
 });
 
@@ -22,12 +37,11 @@ export const uploadImage = async (req: Request, res: Response) => {
     if (!req.file) {
         return res.status(400).json({
             error_code: "INVALID_DATA",
-            error_description: "Não existe imagem ou é invalida"
+            error_description: "Não existe imagem ou é inválida"
         });
     }
 
     const { customer_code, measure_datetime, measure_type } = req.body;
-
 
     if (!customer_code || !measure_datetime || !measure_type || (measure_type !== 'WATER' && measure_type !== 'GAS')) {
         return res.status(400).json({
@@ -37,21 +51,33 @@ export const uploadImage = async (req: Request, res: Response) => {
     }
 
     try {
-        const filePath = path.join(__dirname, '../../uploads', req.file.filename);
-        const fileData = fs.readFileSync(filePath);
-        const base64String = fileData.toString('base64');
+        // Caminho do arquivo com a extensão correta
+        let filePath = path.join(__dirname, '../../uploads', req.file.filename);
 
+        // Forçar a extensão correta se estiver faltando
+        const extension = getExtensionFromMimeType(req.file.mimetype);
+        if (extension && !filePath.endsWith(extension)) {
+            const correctedFilePath = `${filePath}${extension}`;
+            await fs.rename(filePath, correctedFilePath); // Renomear para adicionar a extensão correta
+            filePath = correctedFilePath;
+        }
+
+        // Log do caminho do arquivo para verificação
+        console.log(`Arquivo salvo em: ${filePath}`);
+
+        // Processar a imagem com o modelo Gemini
         const result = await runGeminiModel({
             path: filePath,
             originalname: req.file.originalname,
             mimetype: req.file.mimetype
         });
-        const readingNumber = parseFloat(result);
 
+        const readingNumber = parseFloat(result);
         const measureDate = new Date(measure_datetime);
         const month = measureDate.getMonth() + 1;
         const year = measureDate.getFullYear();
 
+        // Verificar se a leitura já existe
         const existingReading = await AppDataSource.getRepository(Reading).findOne({
             where: {
                 customerCode: customer_code,
@@ -72,13 +98,12 @@ export const uploadImage = async (req: Request, res: Response) => {
         newReading.customerCode = customer_code;
         newReading.measureDateTime = measureDate;
         newReading.type = measure_type;
-        newReading.imageUrl = `uploads/${req.file.filename}`;
+        newReading.imageUrl = `uploads/${path.basename(filePath)}`;
         newReading.month = month;
         newReading.year = year;
         newReading.reading = readingNumber;
         await AppDataSource.getRepository(Reading).save(newReading);
 
-        fs.unlinkSync(filePath);
 
         res.status(200).json({
             image_url: newReading.imageUrl,
@@ -87,11 +112,10 @@ export const uploadImage = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Error processing image:', error.message);
-        res.status(500).json({ message: 'Error processing image.' });
+        console.error('Erro ao processar a imagem:', error.message);
+        res.status(500).json({ message: 'Erro ao processar a imagem.' });
     }
 };
-
 
 export const confirmReading = async (req: Request, res: Response): Promise<Response> => {
     const { measure_uuid, confirmed_value } = req.body;

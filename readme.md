@@ -1,22 +1,22 @@
 # API de leitura de medidores
 
-Este projeto é uma API REST baseada em Node.js para gerenciar leituras de medidores de água e gás. Ele usa IA para processar imagens de medidores e determinar valores de consumo.
+Este projeto é uma API REST baseada em Node.js para gerenciar leituras de medidores de água e gás. Ele usa IA para processar imagens de medidores e determinar valores de consumo, salva e libera um link de acesso onde tudo é armazenado em um banco MySQL no Docker.
 
-## Table of Contents
+## Tabela de Conteúdos
 
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-- [Running the Application](#running-the-application)
-- [Environment Variables](#environment-variables)
+- [Pré-requisitos](#prerequisites)
+- [Configurar](#setup)
+- [Executando o aplicativo](#running-the-application)
+- [Variáveis ​​de ambiente](#environment-variables)
 - [API Endpoints](#api-endpoints)
 
-## Prerequisites
+## Pré-requisitos
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [Node.js v18+](https://nodejs.org/) (if running locally)
 
-## Setup
+## Configurar
 
 1. **Clone o repositório:**
 

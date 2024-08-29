@@ -16,7 +16,11 @@ export const runGeminiModel = async (file: any): Promise<string> => {
 
     const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
-    tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}.jpg`);
+    // Extract the extension from the file's original name
+    const fileExtension = path.extname(file.originalname);
+    tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}${fileExtension}`);
+    
+    // Read and save the file with the correct extension
     const fileData = fs.readFileSync(file.path);
     fs.writeFileSync(tempFilePath, fileData);
 
@@ -29,7 +33,7 @@ export const runGeminiModel = async (file: any): Promise<string> => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const result = await model.generateContent([
-      "Write only numbers of this image, if you dont see numbers then let it null",
+      "Write only numbers of this image, if you don't see numbers then let it null",
       {
         fileData: {
           fileUri: uploadResult.file.uri,
@@ -43,12 +47,9 @@ export const runGeminiModel = async (file: any): Promise<string> => {
     console.error('Error running Gemini model:', error.message);
     throw new Error('Failed to process image with Gemini model');
   } finally {
-    if (tempFilePath) {
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (unlinkError) {
-        console.error('Error deleting temporary file:', unlinkError.message);
-      }
+    // Clean up the temporary file if it was created
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
     }
   }
 };
