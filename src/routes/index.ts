@@ -1,15 +1,19 @@
 import { Router } from 'express';
 import multer from 'multer';
-import readingController from '../controllers/readingController';
+import { uploadImageController, confirmReadingController, listReadingsController } from '../controllers/readingController';
+import { validateUploadData, errorHandler } from '../middlewares/errorHandler';
 
 // Configuração do multer para o upload de arquivos
 const upload = multer({ dest: 'uploads/' });
 
 const router = Router();
 
-// Rota para o upload de imagem
-router.post('/upload', upload.single('image'), readingController.uploadImage);
-router.patch('/confirm', readingController.confirmReading);
-router.get('/:customerCode/list', readingController.listReadings);
+router.post('/upload', upload.single('image'), validateUploadData, uploadImageController);
+
+router.patch('/confirm', confirmReadingController);
+
+router.get('/:customerCode/list', listReadingsController);
+
+router.use(errorHandler);
 
 export default router;

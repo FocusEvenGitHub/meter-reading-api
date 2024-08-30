@@ -1,49 +1,22 @@
 import express from 'express';
 import path from 'path';
-import dotenv from 'dotenv';
-import { DataSource } from 'typeorm';
+import { AppDataSource, initializeDatabase } from './config/database';
 import routes from './routes';
 
-// Carregar variáveis de ambiente do arquivo .env
-dotenv.config();
-
+// Criação do app express
 const app = express();
 app.use(express.json());
 
-// Servir arquivos estáticos do diretório 'public'
+// Servir arquivos estáticos
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Configuração das rotas
 app.use('/', routes);
 
-// Configuração do DataSource
-export const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  synchronize: true,
-  logging: false,
-  entities: [
-    'src/models/**/*.ts'
-  ],
-  migrations: [
-    'src/migration/**/*.ts'
-  ],
-  subscribers: [
-    'src/subscriber/**/*.ts'
-  ]
-});
-
-// Conectar ao MySQL usando TypeORM
-AppDataSource.initialize().then(() => {
-  console.log('Connected to MySQL');
+// Inicialização do banco de dados e do servidor
+initializeDatabase().then(() => {
   app.listen(process.env.PORT || 3000, () => {
     console.log(`Server running on port ${process.env.PORT || 3000}`);
   });
-}).catch(err => {
-  console.error('MySQL connection error:', err);
 });
