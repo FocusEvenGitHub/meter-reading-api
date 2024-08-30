@@ -7,76 +7,96 @@ import { AppDataSource } from '../config/database';
 import { getFileExtension } from '../utils/fileUtils';
 
 export const uploadImage = async (req: Request, res: Response) => {
-   if (!req.file) {
-        return res.status(400).json({
-            error_code: "INVALID_DATA",
-            error_description: "Não existe imagem ou é inválida"
-        });
-    }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
 
+    const { customer_code, measure_datetime, measure_type, image } = req.body;
 
-    const { customer_code, measure_datetime, measure_type } = req.body;
-
-    if (!customer_code || !measure_datetime || !measure_type || (measure_type !== 'WATER' && measure_type !== 'GAS')) {
+    if (!image || !customer_code || !measure_datetime || !measure_type || (measure_type !== 'WATER' && measure_type !== 'GAS')) {
         return res.status(400).json({
             error_code: "INVALID_DATA",
             error_description: "Os dados fornecidos no corpo da requisição são inválidos"
         });
     }
 
-    let filePath = path.join(__dirname, '../../uploads', req.file.filename);
+    try {
+        const base64Header = image.substring(0, image.indexOf(','));
+        const mimeType = base64Header.match(/data:(.*);base64/)?.[1];
 
-    const extension = getFileExtension(req.file.mimetype);
-    if (extension && !filePath.endsWith(extension)) {
-        const correctedFilePath = `${filePath}${extension}`;
-        await fs.rename(filePath, correctedFilePath); 
-        filePath = correctedFilePath;
-    }
-
-    const result = await runGeminiModel({
-        path: filePath,
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype
-    });
-
-    const readingNumber = parseFloat(result);
-    const measureDate = new Date(measure_datetime);
-    const month = measureDate.getMonth() + 1;
-    const year = measureDate.getFullYear();
-
-    const existingReading = await AppDataSource.getRepository(Reading).findOne({
-        where: {
-            customerCode: customer_code,
-            type: measure_type,
-            month: month,
-            year: year
+        if (!mimeType) {
+            return res.status(400).json({
+                error_code: "INVALID_DATA",
+                error_description: "Formato da imagem inválido ou não suportado"
+            });
         }
-    });
 
-    if (existingReading) {
-        return res.status(409).json({
-            error_code: "DOUBLE_REPORT",
-            error_description: "Leitura do mês já realizada."
+        const extension = getFileExtension(mimeType);
+        if (!extension) {
+            return res.status(400).json({
+                error_code: "INVALID_DATA",
+                error_description: "Tipo MIME da imagem não suportado"
+            });
+        }
+
+        const base64Data = image.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const tempFileName = `image_${Date.now()}${extension}`;  
+        const tempFilePath = path.join(__dirname, '../../uploads', tempFileName);
+        
+        
+        await fs.writeFile(tempFilePath, buffer);
+
+        const result = await runGeminiModel({
+            path: tempFilePath,
+            originalname: tempFileName,
+            mimetype: mimeType
+        });
+
+        const readingNumber = parseFloat(result);
+        const measureDate = new Date(measure_datetime);
+        const month = measureDate.getMonth() + 1;
+        const year = measureDate.getFullYear();
+
+        const existingReading = await AppDataSource.getRepository(Reading).findOne({
+            where: {
+                customerCode: customer_code,
+                type: measure_type,
+                month: month,
+                year: year
+            }
+        });
+
+        if (existingReading) {
+            return res.status(409).json({
+                error_code: "DOUBLE_REPORT",
+                error_description: "Leitura do mês já realizada."
+            });
+        }
+        const imageUrl = `${tempFileName}`;
+
+        const newReading = new Reading();
+        newReading.customerCode = customer_code;
+        newReading.measureDateTime = measureDate;
+        newReading.type = measure_type;
+
+        newReading.imageUrl = imageUrl;
+        newReading.month = month;
+        newReading.year = year;
+        newReading.reading = readingNumber;
+        await AppDataSource.getRepository(Reading).save(newReading);
+
+        res.status(200).json({
+            image_url: `${baseUrl}/uploads/${tempFileName}`,
+            measure_value: newReading.reading,
+            measure_uuid: newReading.id
+        });
+
+    } catch (error) {
+        console.error('Error processing the image:', error.message);
+        res.status(500).json({
+            error_code: "INVALID_DATA",
+            error_description: "Falha ao processar a imagem"
         });
     }
-
-    const newReading = new Reading();
-    newReading.customerCode = customer_code;
-    newReading.measureDateTime = measureDate;
-    newReading.type = measure_type;
-    newReading.imageUrl = `${req.file.filename}${extension}`;
-    newReading.month = month;
-    newReading.year = year;
-    newReading.reading = readingNumber;
-    await AppDataSource.getRepository(Reading).save(newReading);
-
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-    res.status(200).json({
-        image_url: baseUrl + `/uploads/`+ newReading.imageUrl,
-        measure_value: newReading.reading,
-        measure_uuid: newReading.id
-    });
 };
 
 export const confirmReading = async (req: Request, res: Response) => {

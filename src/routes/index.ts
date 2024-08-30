@@ -8,6 +8,10 @@ const upload = multer({ dest: 'uploads/' });
 
 const router = Router();
 
+router.get('/', (req, res) => {
+    res.send('Project is running');
+  });
+
 router.post('/upload', upload.single('image'), validateUploadData, uploadImageController);
 
 router.patch('/confirm', confirmReadingController);

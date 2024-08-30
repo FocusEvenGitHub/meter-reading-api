@@ -16,11 +16,9 @@ export const runGeminiModel = async (file: any): Promise<string> => {
 
     const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
-    // Extract the extension from the file's original name
     const fileExtension = path.extname(file.originalname);
     tempFilePath = path.join(os.tmpdir(), `${file.originalname.replace(/\s+/g, '_')}${fileExtension}`);
     
-    // Read and save the file with the correct extension
     const fileData = fs.readFileSync(file.path);
     fs.writeFileSync(tempFilePath, fileData);
 
@@ -47,7 +45,6 @@ export const runGeminiModel = async (file: any): Promise<string> => {
     console.error('Error running Gemini model:', error.message);
     throw new Error('Failed to process image with Gemini model');
   } finally {
-    // Clean up the temporary file if it was created
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
